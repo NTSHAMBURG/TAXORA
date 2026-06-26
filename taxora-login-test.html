@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Taxora — Login-Test</title>
+<style>
+  :root{
+    --ink:#0f1417; --panel:#171e23; --line:#283139; --muted:#8b97a1;
+    --text:#eef3f6; --accent:#e0a23a; --ok:#3fae6e; --err:#e2685f;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    background:var(--ink); color:var(--text);
+    font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    padding:max(20px,env(safe-area-inset-top)) 20px 40px; -webkit-text-size-adjust:100%;
+  }
+  .wrap{max-width:520px;margin:0 auto}
+  header{margin:8px 0 22px}
+  .kicker{letter-spacing:.18em;text-transform:uppercase;font-size:12px;color:var(--accent);font-weight:700}
+  h1{font-size:26px;margin:6px 0 2px;font-weight:700}
+  .sub{color:var(--muted);font-size:14px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:16px}
+  label{display:block;font-size:13px;color:var(--muted);margin:12px 0 6px}
+  label:first-child{margin-top:0}
+  input{
+    width:100%;padding:13px 14px;border-radius:10px;border:1px solid var(--line);
+    background:#0d1216;color:var(--text);font-size:16px;
+  }
+  input:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:transparent}
+  .row{display:flex;gap:10px}
+  .row>div{flex:1}
+  button{
+    width:100%;margin-top:16px;padding:14px;border:0;border-radius:10px;
+    background:var(--accent);color:#1a1205;font-size:16px;font-weight:700;cursor:pointer;
+  }
+  button:disabled{opacity:.55;cursor:default}
+  button.secondary{background:transparent;color:var(--text);border:1px solid var(--line);font-weight:600}
+  .hint{font-size:12px;color:var(--muted);margin-top:10px}
+  .out{margin-top:14px;font-size:15px;display:none}
+  .out.show{display:block}
+  .badge{display:inline-block;padding:4px 10px;border-radius:999px;font-size:13px;font-weight:700}
+  .b-inhaber{background:#3a2f12;color:#f0c673}
+  .b-erfasser{background:#13312a;color:#7fe0b6}
+  .b-pruefer{background:#1d2a3a;color:#8fc0ff}
+  .line{height:1px;background:var(--line);margin:16px 0}
+  .kv{display:flex;justify-content:space-between;gap:12px;padding:6px 0;border-bottom:1px solid var(--line)}
+  .kv:last-child{border-bottom:0}
+  .kv .k{color:var(--muted)}
+  .msg{padding:12px 14px;border-radius:10px;font-size:14px;margin-top:14px;display:none}
+  .msg.show{display:block}
+  .msg.ok{background:#11271c;color:#9fe6c0;border:1px solid #224a37}
+  .msg.err{background:#2b1614;color:#f3a59e;border:1px solid #59302c}
+  .mand{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+  .chip{background:#0d1216;border:1px solid var(--line);border-radius:8px;padding:5px 10px;font-size:13px}
+  h2{font-size:15px;margin:0 0 4px}
+  .small{font-size:13px;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="kicker">Taxora</div>
+    <h1>Login-Test</h1>
+    <div class="sub">Prüft Anmeldung, Rolle und freigegebene Mandanten gegen das Backend.</div>
+  </header>
+
+  <div class="card">
+    <label for="api">Backend-Adresse</label>
+    <input id="api" value="https://taxora-backend-production-7e1f.up.railway.app" autocapitalize="off" autocorrect="off" spellcheck="false">
+
+    <label for="email">E-Mail</label>
+    <input id="email" type="email" placeholder="name@firma.de" autocapitalize="off" autocorrect="off" spellcheck="false">
+
+    <label for="pw">Passwort</label>
+    <input id="pw" type="password" placeholder="Passwort">
+
+    <button id="loginBtn" onclick="doLogin()">Anmelden</button>
+    <div class="msg err" id="loginErr"></div>
+
+    <div class="out" id="result">
+      <div class="line"></div>
+      <div class="kv"><span class="k">Angemeldet als</span><span id="rName"></span></div>
+      <div class="kv"><span class="k">E-Mail</span><span id="rEmail"></span></div>
+      <div class="kv"><span class="k">Rolle</span><span id="rRole"></span></div>
+      <div style="margin-top:12px"><span class="k small">Freigegebene Mandanten</span><div class="mand" id="rMand"></div></div>
+      <button class="secondary" onclick="doMe()" style="margin-top:16px">Sitzung prüfen (Wer bin ich?)</button>
+      <div class="msg" id="meMsg"></div>
+    </div>
+  </div>
+
+  <div class="card" id="pwCard" style="display:none">
+    <h2>Passwort ändern</h2>
+    <div class="small">Empfohlen nach dem ersten Login mit dem Start-Passwort.</div>
+    <label for="oldpw">Altes Passwort</label>
+    <input id="oldpw" type="password">
+    <label for="newpw">Neues Passwort (mind. 8 Zeichen)</label>
+    <input id="newpw" type="password">
+    <button onclick="doChange()">Neues Passwort speichern</button>
+    <div class="msg" id="pwMsg"></div>
+  </div>
+
+  <div class="hint">Diese Seite speichert nichts dauerhaft. Das Anmelde-Token bleibt nur im Speicher, bis die Seite geschlossen wird.</div>
+</div>
+
+<script>
+  var TOKEN = null;
+  function api(){ return document.getElementById('api').value.replace(/\/+$/,''); }
+  function show(el){ el.classList.add('show'); }
+  function hide(el){ el.classList.remove('show'); }
+  function setMsg(el, text, kind){ el.textContent = text; el.className = 'msg ' + kind + ' show'; }
+  function roleBadge(r){
+    var map = {inhaber:'Inhaber', erfasser:'Erfasser', pruefer:'Prüfer / Steuerberater'};
+    return '<span class="badge b-'+r+'">'+(map[r]||r)+'</span>';
+  }
+
+  async function doLogin(){
+    var btn = document.getElementById('loginBtn');
+    var err = document.getElementById('loginErr');
+    hide(err); hide(document.getElementById('result')); document.getElementById('pwCard').style.display='none';
+    var email = document.getElementById('email').value.trim();
+    var pw = document.getElementById('pw').value;
+    if(!email || !pw){ setMsg(err,'Bitte E-Mail und Passwort eingeben.','err'); return; }
+    btn.disabled = true; btn.textContent = 'Prüfe…';
+    try{
+      var r = await fetch(api()+'/auth/login', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({email:email, password:pw})
+      });
+      var data = await r.json().catch(function(){return null;});
+      if(!r.ok || !data || !data.ok){
+        setMsg(err, (data && data.error) ? data.error : ('Anmeldung fehlgeschlagen (HTTP '+r.status+').'), 'err');
+        return;
+      }
+      TOKEN = data.token;
+      document.getElementById('rName').textContent = data.user.name;
+      document.getElementById('rEmail').textContent = data.user.email;
+      document.getElementById('rRole').innerHTML = roleBadge(data.user.rolle);
+      var m = document.getElementById('rMand'); m.innerHTML = '';
+      (data.mandanten||[]).forEach(function(x){ var c=document.createElement('span'); c.className='chip'; c.textContent=x; m.appendChild(c); });
+      if(!(data.mandanten||[]).length){ m.innerHTML='<span class="small">— keine —</span>'; }
+      show(document.getElementById('result'));
+      document.getElementById('pwCard').style.display='block';
+    }catch(e){
+      setMsg(err,'Backend nicht erreichbar: '+(e && e.message ? e.message : e),'err');
+    }finally{
+      btn.disabled = false; btn.textContent = 'Anmelden';
+    }
+  }
+
+  async function doMe(){
+    var msg = document.getElementById('meMsg');
+    if(!TOKEN){ setMsg(msg,'Bitte zuerst anmelden.','err'); return; }
+    try{
+      var r = await fetch(api()+'/auth/me', { headers:{'Authorization':'Bearer '+TOKEN} });
+      var data = await r.json().catch(function(){return null;});
+      if(!r.ok || !data || !data.ok){ setMsg(msg,(data && data.error)||'Sitzung ungültig.','err'); return; }
+      setMsg(msg,'Sitzung gültig: '+data.user.name+' ('+data.user.rolle+'), Mandanten: '+((data.mandanten||[]).join(', ')||'—'),'ok');
+    }catch(e){ setMsg(msg,'Fehler: '+(e && e.message ? e.message : e),'err'); }
+  }
+
+  async function doChange(){
+    var msg = document.getElementById('pwMsg');
+    if(!TOKEN){ setMsg(msg,'Bitte zuerst anmelden.','err'); return; }
+    var oldp = document.getElementById('oldpw').value;
+    var newp = document.getElementById('newpw').value;
+    if(newp.length < 8){ setMsg(msg,'Neues Passwort: mindestens 8 Zeichen.','err'); return; }
+    try{
+      var r = await fetch(api()+'/auth/change-password', {
+        method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+TOKEN},
+        body: JSON.stringify({old_password:oldp, new_password:newp})
+      });
+      var data = await r.json().catch(function(){return null;});
+      if(!r.ok || !data || !data.ok){ setMsg(msg,(data && data.error)||'Änderung fehlgeschlagen.','err'); return; }
+      setMsg(msg,'Passwort geändert. Beim nächsten Login das neue Passwort verwenden.','ok');
+      document.getElementById('oldpw').value=''; document.getElementById('newpw').value='';
+    }catch(e){ setMsg(msg,'Fehler: '+(e && e.message ? e.message : e),'err'); }
+  }
+</script>
+</body>
+</html>
